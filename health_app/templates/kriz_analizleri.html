@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}Kriz Analizleri{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card text-center p-5 shadow-sm">
+                    <div class="feature-icon bg-danger bg-gradient text-white rounded-3 mb-4 mx-auto" style="width:64px;height:64px;font-size:2rem;">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <h1 class="display-5 fw-bold mb-3 text-danger">Kriz Analizleri</h1>
+
+                    <!-- Kan Tahlili Seçimi -->
+                    <div class="mb-4">
+                        <h4 class="mb-3">Kan Tahlili Sonuçlarınızı Kullanın</h4>
+                        <form id="bloodTestForm" class="mb-4">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <select class="form-select" id="bloodTestSelect">
+                                        <option value="">Tahlil seçiniz...</option>
+                                        {% for test in blood_tests %}
+                                        <option value="{{ test.id }}" data-results='{{ test.results_data|tojson|safe }}'>
+                                            {{ test.date.strftime('%d.%m.%Y') }} - Tahlil Sonucu
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-primary w-100" onclick="loadBloodTestResults()">
+                                        <i class="fas fa-vial me-2"></i>Tahlil Sonuçlarını Yükle
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Tab Navigation -->
+                    <ul class="nav nav-tabs mb-4" id="predictionTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="diabetes-tab" data-bs-toggle="tab" data-bs-target="#diabetes" type="button" role="tab">Diyabet Riski</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="heart-tab" data-bs-toggle="tab" data-bs-target="#heart" type="button" role="tab">Kalp Hastalığı Riski</button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="predictionTabContent">
+                        <!-- Diabetes Prediction Form -->
+                        <div class="tab-pane fade show active" id="diabetes" role="tabpanel">
+                            <h3 class="mb-4">Diyabet Riski Analizi</h3>
+                            <form method="POST" action="{{ url_for('kriz_analizleri') }}" id="diabetesForm">
+                                <input type="hidden" name="prediction_type" value="diabetes">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="pregnancies" class="form-label">Hamilelik Sayısı</label>
+                                        <input type="number" class="form-control" id="pregnancies" name="pregnancies" required>
+                                        <small class="text-muted">Normal: 0-5 arası</small>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="glucose" class="form-label">Glikoz Seviyesi (mg/dL)</label>
+                                        <input type="number" class="form-control" id="glucose" name="glucose" required>
+                                        <small class="text-muted">Normal: 70-100 mg/dL</small>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="blood_pressure" class="form-label">Kan Basıncı (mmHg)</label>
+                                        <input type="number" class="form-control" id="blood_pressure" name="blood_pressure" required>
+                                        <small class="text-muted">Normal: 90-120 mmHg</small>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="skin_thickness" class="form-label">Cilt Kalınlığı (mm)</label>
+                                        <input type="number" class="form-control" id="skin_thickness" name="skin_thickness" required>
+                                        <small class="text-muted">Normal: 10-50 mm</small>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="insulin" class="form-label">İnsülin Seviyesi (mu U/ml)</label>
+                                        <input type="number" class="form-control" id="insulin" name="insulin" required>
+                                        <small class="text-muted">Normal: 2.6-24.9 mu U/ml</small>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="bmi" class="form-label">Vücut Kitle İndeksi</label>
+                                        <input type="number" class="form-control" id="bmi" name="bmi" step="0.1" required>
+                                        <small class="text-muted">Normal: 18.5-24.9</small>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="diabetes_pedigree" class="form-label">Diyabet Soy Ağacı Fonksiyonu</label>
+                                        <input type="number" class="form-control" id="diabetes_pedigree" name="diabetes_pedigree" step="0.001" required>
+                                        <small class="text-muted">0-2 arası değer</small>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="age" class="form-label">Yaş</label>
+                                        <input type="number" class="form-control" id="age" name="age" required>
+                                        <small class="text-muted">20-80 arası</small>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-danger mt-3">Analiz Et</button>
+                            </form>
+                        </div>
+
+                        <!-- Heart Disease Prediction Form -->
+                        <div class="tab-pane fade" id="heart" role="tabpanel">
+                            <h3 class="mb-4">Kalp Hastalığı Riski Analizi</h3>
+                            <form method="POST" action="{{ url_for('kriz_analizleri') }}" id="heartForm">
+                                <input type="hidden" name="prediction_type" value="heart">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="heart_age" class="form-label">Yaş</label>
+                                        <input type="number" class="form-control" id="heart_age" name="heart_age" required>
+                                        <small class="text-muted">20-80 arası</small>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="sex" class="form-label">Cinsiyet</label>
+                                        <select class="form-select" id="sex" name="sex" required>
+                                            <option value="0">Kadın</option>
+                                            <option value="1">Erkek</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="cp" class="form-label">Göğüs Ağrısı Tipi</label>
+                                        <select class="form-select" id="cp" name="cp" required>
+                                            <option value="0">Ağrı yok</option>
+                                            <option value="1">Hafif ağrı</option>
+                                            <option value="2">Orta şiddetli ağrı</option>
+                                            <option value="3">Şiddetli ağrı</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="trestbps" class="form-label">Dinlenme Kan Basıncı (mmHg)</label>
+                                        <input type="number" class="form-control" id="trestbps" name="trestbps" required>
+                                        <small class="text-muted">Normal: 90-120 mmHg</small>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="chol" class="form-label">Kolesterol (mg/dl)</label>
+                                        <input type="number" class="form-control" id="chol" name="chol" required>
+                                        <small class="text-muted">Normal: 125-200 mg/dl</small>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="fbs" class="form-label">Açlık Kan Şekeri</label>
+                                        <select class="form-select" id="fbs" name="fbs" required>
+                                            <option value="0">120 mg/dl'den düşük</option>
+                                            <option value="1">120 mg/dl'den yüksek</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="restecg" class="form-label">EKG Sonuçları</label>
+                                        <select class="form-select" id="restecg" name="restecg" required>
+                                            <option value="0">Normal</option>
+                                            <option value="1">ST-T dalga anormalliği</option>
+                                            <option value="2">Sol ventrikül hipertrofisi</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="thalach" class="form-label">Maksimum Kalp Atış Hızı</label>
+                                        <input type="number" class="form-control" id="thalach" name="thalach" required>
+                                        <small class="text-muted">Normal: 60-100 atım/dk</small>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="exang" class="form-label">Egzersiz Kaynaklı Göğüs Ağrısı</label>
+                                        <select class="form-select" id="exang" name="exang" required>
+                                            <option value="0">Hayır</option>
+                                            <option value="1">Evet</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-danger mt-3">Analiz Et</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Results Section -->
+                    {% if prediction is defined %}
+                    <div class="mt-4">
+                        <div class="alert {% if prediction == 1 %}alert-danger{% else %}alert-success{% endif %}">
+                            <h4 class="alert-heading">
+                                {% if prediction == 1 %}
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                {% if prediction_type == 'diabetes' %}
+                                Diyabet Riski Tespit Edildi
+                                {% else %}
+                                Kalp Hastalığı Riski Tespit Edildi
+                                {% endif %}
+                                {% else %}
+                                <i class="fas fa-check-circle me-2"></i>
+                                {% if prediction_type == 'diabetes' %}
+                                Diyabet Riski Tespit Edilmedi
+                                {% else %}
+                                Kalp Hastalığı Riski Tespit Edilmedi
+                                {% endif %}
+                                {% endif %}
+                            </h4>
+                            <p class="mb-0">
+                                {% if prediction == 1 %}
+                                Lütfen en kısa sürede bir sağlık kuruluşuna başvurunuz.
+                                {% else %}
+                                Şu an için risk görünmüyor, ancak düzenli kontrollerinizi aksatmayınız.
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="alert alert-info mt-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Bu analiz sadece bir ön değerlendirmedir. Kesin teşhis için mutlaka bir sağlık kuruluşuna başvurunuz.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+function loadBloodTestResults() {
+    const select = document.getElementById('bloodTestSelect');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (!selectedOption.value) {
+        alert('Lütfen bir tahlil seçiniz.');
+        return;
+    }
+    
+    try {
+        const results = JSON.parse(selectedOption.dataset.results);
+        console.log('Loaded test results:', results); // Debug için log
+        
+        // Diyabet formu için değerleri doldur
+        if (results.biyokimya) {
+            // Glikoz değerini al
+            const glucose = results.biyokimya.glucose;
+            if (glucose) {
+                document.getElementById('glucose').value = glucose;
+                console.log('Set glucose value:', glucose);
+            }
+            
+            // Kan basıncı değerini al (sistolik değeri kullan)
+            const bloodPressure = results.biyokimya.blood_pressure;
+            if (bloodPressure) {
+                document.getElementById('blood_pressure').value = bloodPressure;
+                console.log('Set blood pressure value:', bloodPressure);
+            }
+        }
+        
+        // Kalp hastalığı formu için değerleri doldur
+        if (results.biyokimya) {
+            // Kolesterol değerini al
+            const cholesterol = results.biyokimya.cholesterol;
+            if (cholesterol) {
+                document.getElementById('chol').value = cholesterol;
+                console.log('Set cholesterol value:', cholesterol);
+            }
+            
+            // Açlık kan şekeri değerini kontrol et ve ayarla
+            const glucose = results.biyokimya.glucose;
+            if (glucose) {
+                const fbsValue = parseFloat(glucose) > 120 ? 1 : 0;
+                document.getElementById('fbs').value = fbsValue;
+                console.log('Set FBS value:', fbsValue, 'based on glucose:', glucose);
+            }
+            
+            // Dinlenme kan basıncı değerini al
+            const bloodPressure = results.biyokimya.blood_pressure;
+            if (bloodPressure) {
+                document.getElementById('trestbps').value = bloodPressure;
+                console.log('Set resting blood pressure value:', bloodPressure);
+            }
+        }
+        
+        // Kullanıcıya bilgi ver
+        alert('Tahlil sonuçları forma yüklendi. Lütfen diğer değerleri de kontrol edip tamamlayınız.');
+        
+    } catch (error) {
+        console.error('Error loading blood test results:', error);
+        alert('Tahlil sonuçları yüklenirken bir hata oluştu. Lütfen tekrar deneyiniz.');
+    }
+}
+
+// Sayfa yüklendiğinde form değerlerini sıfırla
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = ['diabetesForm', 'heartForm'];
+    forms.forEach(formId => {
+        const form = document.getElementById(formId);
+        if (form) {
+            form.reset();
+        }
+    });
+});
+</script>
+{% endblock %} 
